@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+            
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+<body>
+    <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        // You have to create a function called createScene. This function must return a BABYLON.Scene object
+// You can reference the following variables: engine, canvas
+// You must at least define a camera
+
+const createScene = function () {
+    // scene
+    const scene = new BABYLON.Scene(engine);
+    scene.gravity = new BABYLON.Vector3(0, -0.15, 0);
+
+    // camera
+    const camera = new BABYLON.UniversalCamera("camera", new BABYLON.Vector3(0, 1.8, 0), scene);
+    camera.speed = 0.2;
+    camera.keysUp = [87, 38];
+    camera.keysDown = [83, 40];
+    camera.keysLeft = [65, 37];
+    camera.keysRight = [68, 39];
+
+    // camera jumping
+    const jumpingAnim = new BABYLON.Animation('jumpingAnim', 'position.y', 60, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+
+    const keyFrames = [];
+
+    keyFrames.push({
+        frame: 0,
+        value: camera.position.y,
+    });
+
+    keyFrames.push({
+        frame: 30,
+        value: camera.position.y * 3,
+    });
+
+    keyFrames.push({
+        frame: 60,
+        value: camera.position.y,
+    });
+
+    jumpingAnim.setKeys(keyFrames);
+    camera.animations.push(jumpingAnim);
+
+
+    let isPressed = false;
+    // if space is just pressed start jumping - beginAnimation()
+    document.addEventListener("keydown", function () {
+
+
+        if (event.keyCode === 32) {
+            if (!isPressed) {
+                isPressed = true;
+                scene.beginAnimation(camera, 0, 60, true, 1.0);
+            }
+        }
+    });
+
+    // if space is released stop animation and reset isPressed conditional
+    document.addEventListener('keyup', function () {
+        if (event.keyCode === 32) {
+            isPressed = false;
+            scene.stopAnimation(camera);
+        }
+    });
+
+
+    // camera elipsoid
+    camera.ellipsoid = new BABYLON.Vector3(1, 1, 2);
+    // This attaches the camera to the canvas
+    camera.attachControl(canvas, true);
+    // apply gravity and collisions to the camera
+    camera.applyGravity = true;
+    // apply gravity for camera event when no inputs are pressed
+    // originally gravity works when player give some input
+    camera.needMoveForGravity = true;
+    camera.checkCollisions = true;
+
+    // light
+    const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 10, 0), scene);
+    // light.color
+    light.diffuse = new BABYLON.Color3(0.99, 1, 0.89);
+
+    // other scene objects
+    // ground
+    const ground = new BABYLON.MeshBuilder.CreateGround('ground', { width: 40, height: 40 }, scene);
+    ground.checkCollisions = true;
+
+    // ground 2
+    const ground2 = new BABYLON.MeshBuilder.CreateGround('ground', { width: 20, height: 20 }, scene);
+    ground2.position.x = 40
+    ground2.checkCollisions = true;
+
+    // wall1
+    const wall = new BABYLON.MeshBuilder.CreateBox('wall', { width: 40, height: 10, depth: 0.5 }, scene);
+    wall.position = new BABYLON.Vector3(0, 0.2, 20);
+    // define wall material
+    wallMaterial = new BABYLON.StandardMaterial('wall-material', scene);
+    wallMaterial.diffuseColor = new BABYLON.Color3(0.48, 1, 0.91);
+
+    // attach material to wall mesh
+    wall.material = wallMaterial;
+    // enable wall collisions
+    wall.checkCollisions = true;
+
+    // wall2
+    const wall2 = new BABYLON.MeshBuilder.CreateBox('wall2', { width: 40, height: 10, depth: 0.5 }, scene);
+    wall2.position = new BABYLON.Vector3(0, 0.2, -20);
+    // wall 2 material
+    wall2Material = new BABYLON.StandardMaterial('wall2-material', scene);
+    wall2Material.diffuseColor = new BABYLON.Color3(0.34, 0.53, 0.99);
+    wall2.material = wall2Material;
+    // enable wall2 collisions with camera
+    wall2.checkCollisions = true;
+
+    // flat box for jumping on it
+    const flatBox = new BABYLON.MeshBuilder.CreateBox('flat-box', { width: 30, height: 0.5, depth: 30 }, scene);
+    flatBox.position.x = -37;
+    flatBox.checkCollisions = true;
+
+    const flatBox2 = new BABYLON.MeshBuilder.CreateBox('flat-box', { width: 30, height: 0.5, depth: 30 }, scene);
+    flatBox2.position.x = -80;
+    flatBox.checkCollisions = true;
+
+    return scene;
+};
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
